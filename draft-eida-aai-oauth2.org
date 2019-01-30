@@ -1,4 +1,4 @@
-#+TITLE: Proposal or an EIDA AAI based on B2ACCESS OAuth2.0
+#+TITLE: EIDA AAI based on B2ACCESS OAuth2.0 (Draft)
 
 * Introduction
 
