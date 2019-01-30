@@ -208,8 +208,8 @@ configuration can be found at
 
 The following purpose is based on the well established OAuth2.0 standard
 ([[https://tools.ietf.org/html/rfc6749][RFC6749]] and
-[[https://tools.ietf.org/html/rfc6750][RFC6750]]) as well as the boundery
-conditions set by the EUDAT [[https://eudat.eu/services/b2access][B2ACCESS]]
+[[https://tools.ietf.org/html/rfc6750][RFC6750]]) as well as the restrictions
+set by the EUDAT [[https://eudat.eu/services/b2access][B2ACCESS]]
 authentication and authorization platform. The purposal is subdevided into
 implementation stages.
 
