@@ -743,6 +743,15 @@ clients preliminary should stick to the API provided by B2ACCESS.
     depending on request session identifiers. Request session identifiers are
     simply passed to EIDA-AS. Decisioning is encapsulated within EIDA-AS.
 
+  - When registering a protected request session with EIDA-AS, the protected
+    resource of the EIDA-GRS should append the identifier to the request
+    session identifiers received.
+    
+    This approach may enable EIDA-AS to order request session identifiers
+    hierarchically.
+
+    Especially, this design may be useful in a chained EIDA-GRS environment.
+
   - In theory, all protected resources of EIDA-RS implementations may both
     register and introspect access tokens with EIDA-AS. At the time being,
     there is no mechanism implemented enforcing that exclusively protected
