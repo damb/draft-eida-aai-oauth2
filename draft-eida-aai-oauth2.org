@@ -775,7 +775,8 @@ Clients MAY make use of refresh tokens as defined in
 (RFC6749)]].
 
 In order to obtain a new access token using refresh token credentials a
-client should directly negotiate with B2ACCESS. Further details are given
+client should directly negotiate with B2ACCESS. Further details are given in
+the
 [[https://eudat.eu/services/userdoc/b2access-service-integration][B2ACCESS
 instruction manual]]. 
   
