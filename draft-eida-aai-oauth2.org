@@ -335,6 +335,10 @@ implements a centralized context dependent cache virtually extending the
 lifetime of access tokens for request sessions within EIDA. EIDA-AS is
 implemented as a adapting wrapper of B2ACCESS.
 
+Communication between protected resources and EIDA-AS MUST be protected with a
+secure HTTP connection such as [[https://tools.ietf.org/html/rfc2818][SSL/TLS
+(RFC2818)]].
+
 *** DONE Context Dependent Access Token Cache
 
 EIDA-AAI uses plain bearer access tokens in order to authenticate
