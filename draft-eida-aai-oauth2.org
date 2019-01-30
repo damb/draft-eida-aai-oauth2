@@ -56,6 +56,9 @@ for restricted data access.
     EIDA-GRS instances MUST call other protected resources of EIDA-RS
     instances by means of the HTTP POST method.
 
+  - [ ] Should a EIDA-AS token revocation endpoint to be specified more in
+    detail within this document?
+
   - [ ] For the purpose of access token session registration/unregistration
     EIDA-AS needs to uniquely identify protected resources of EIDA-GRS
     ideally independent from the resource server's IP address. Which approach
