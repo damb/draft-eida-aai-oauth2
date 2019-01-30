@@ -555,7 +555,10 @@ the following top-level member:
 
 ~request_session_id~
   REQUIRED. JSON string of a request session identifier referencing the
-  access token within the EIDA-AS cache.
+  access token within the EIDA-AS cache. In a chained EIDA-GRS environment
+  the protected resource SHOULD append this identifier to the list of
+  received request session identifiers and include it with subsequent
+  requests.
 
 **** DONE Error Response
 
