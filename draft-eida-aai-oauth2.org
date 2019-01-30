@@ -752,6 +752,12 @@ clients preliminary should stick to the API provided by B2ACCESS.
 
     Especially, this design may be useful in a chained EIDA-GRS environment.
 
+  - Token introspection is tightly coupled to EIDA-AS. In future, this issue
+    might be solved using self containing descriptive tokens e.g. JWT
+    ([[https://tools.ietf.org/html/rfc7519][RFC7519]]). However, as long as
+    B2ACCESS OAuth2.0 is based on plain bearer access tokens EIDA-AS should
+    implement the same facilities.
+
   - In theory, all protected resources of EIDA-RS implementations may both
     register and introspect access tokens with EIDA-AS. At the time being,
     there is no mechanism implemented enforcing that exclusively protected
