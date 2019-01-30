@@ -391,6 +391,10 @@ of B2ACCESS. This approach has two main advantages:
 A client may access protected resources within EIDA either by means of an
 EIDA-GRS (i.e. /proxied/ access) or an EIDA-ERS (i.e. /direct/ access).
 
+#+CAPTION: Abstract Protocol Flow
+#+NAME: fig:Protocol-Flow
+[[./img/protocol-flow.png]]
+
 **** DONE Direct Access To Protected EIDA Endpoint Resources
 
 Directly accessing a protected resource of a EIDA-ERS implies that no access
