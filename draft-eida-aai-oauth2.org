@@ -1,5 +1,50 @@
 #+TITLE: Proposal or an EIDA AAI based on B2ACCESS OAuth2.0
 
+* Introduction
+
+Implementing federated restricted data access for EIDA Web-Services based on
+the contemporary
+[[http://www.fdsn.org/webservices/FDSN-WS-Specifications-1.1.pdf][FDSNWS
+Specifications (Version 1.1b)]] (i.e. HTTP Digest authentication
+[[https://tools.ietf.org/html/rfc2617][RFC2617]]) is not possible: User
+credentials are hashed before being passed from a client to
+=eida-federator/fdsnws-dataselect/queryauth= and consequently cannot be
+restored and reused for accessing EIDA endpoints (i.e.
+=eida-endpoint/fdsnws-dataselect/queryauth=) to be federated.
+
+[[https://docs.gempa.de/seiscomp3/current/apps/fdsnws.html][SeisComp3
+FDSNWSs (Version 1.1b)]] protected resources currently implement restricted
+data access both by means of HTTP Digest authentication and a token based
+authentication mechanism. Due to the original requirement to stick to the
+current FDSNWS standard the implementation is based on:
+  - EUDAT [[https://b2access.eudat.eu/home/][B2ACCESS]] (federated identities
+    e.g. [[https://edugain.org/][eduGAIN]])
+    [[http://docs.oasis-open.org/security/saml/v2.0/saml-core-2.0-os.pdf][SAML2.0]]
+    token based authorization,
+  - a custom *client service* implementation wrapping the SAML2.0
+    tokens issued by B2ACCESS into a custom token format,
+  - a custom access token format based on a PGP ASCII-armored, digitally
+    signed JSON object
+  - and an additional ~/auth~ resource for EIDA-ERS instances.
+
+Henceforth, accessing a protected resource is implemented following a
+two-step approach:
+  1. The client has to transmit the access token using the service's ~/auth~
+    resource; the web-service then returns FDSNWS standard conform access
+    credentials
+  2. The client uses those access credentials to access the protected
+  resource (i.e. the ~/queryauth~ resource)
+
+It is correct that a token based AAI mechanism much better fulfils the
+requirements of a federated FDSNWS environment. Unfortunately, from the
+client's point of view, the approach is not straight forward to use. In
+addition, it introduces multiple serious security issues.
+
+This document describes a token based AAI mechanism within EIDA relying on
+current AAI standards. In favor of a full featured token based AAI mechanism
+we partly must break compatibility with the current FDSN Web-Service standard
+for restricted data access.
+
 * DONE Open Questions
 
   - [ ] For the purpose of access token session registration/unregistration
@@ -82,50 +127,7 @@
     *Cons*:
     - Additional complexity
 
-* Introduction
 
-Implementing federated restricted data access for EIDA Web-Services based on
-the contemporary
-[[http://www.fdsn.org/webservices/FDSN-WS-Specifications-1.1.pdf][FDSNWS
-Specifications (Version 1.1b)]] (i.e. HTTP Digest authentication
-[[https://tools.ietf.org/html/rfc2617][RFC2617]]) is not possible: User
-credentials are hashed before being passed from a client to
-=eida-federator/fdsnws-dataselect/queryauth= and consequently cannot be
-restored and reused for accessing EIDA endpoints (i.e.
-=eida-endpoint/fdsnws-dataselect/queryauth=) to be federated.
-
-[[https://docs.gempa.de/seiscomp3/current/apps/fdsnws.html][SeisComp3
-FDSNWSs (Version 1.1b)]] protected resources currently implement restricted
-data access both by means of HTTP Digest authentication and a token based
-authentication mechanism. Due to the original requirement to stick to the
-current FDSNWS standard the implementation is based on:
-  - EUDAT [[https://b2access.eudat.eu/home/][B2ACCESS]] (federated identities
-    e.g. [[https://edugain.org/][eduGAIN]])
-    [[http://docs.oasis-open.org/security/saml/v2.0/saml-core-2.0-os.pdf][SAML2.0]]
-    token based authorization,
-  - a custom *client service* implementation wrapping the SAML2.0
-    tokens issued by B2ACCESS into a custom token format,
-  - a custom access token format based on a PGP ASCII-armored, digitally
-    signed JSON object
-  - and an additional ~/auth~ resource for EIDA-ERS instances.
-
-Henceforth, accessing a protected resource is implemented following a
-two-step approach:
-  1. The client has to transmit the access token using the service's ~/auth~
-    resource; the web-service then returns FDSNWS standard conform access
-    credentials
-  2. The client uses those access credentials to access the protected
-  resource (i.e. the ~/queryauth~ resource)
-
-It is correct that a token based AAI mechanism much better fulfils the
-requirements of a federated FDSNWS environment. Unfortunately, from the
-client's point of view, the approach is not straight forward to use. In
-addition, it introduces multiple serious security issues.
-
-This document describes a token based AAI mechanism within EIDA relying on
-current AAI standards. In favor of a full featured token based AAI mechanism
-we partly must break compatibility with the current FDSN Web-Service standard
-for restricted data access.
 
 * DONE Requirements
 
