@@ -779,7 +779,8 @@ clients preliminary should stick to the API provided by B2ACCESS.
     This approach may enable EIDA-AS to order request session identifiers
     hierarchically.
 
-    Especially, this design may be useful in a chained EIDA-GRS environment.
+    In particular, this design may be useful in a chained EIDA-GRS
+    environment.
 
   - Token introspection is tightly coupled to EIDA-AS. In future, this issue
     might be solved using self containing descriptive tokens e.g. JWT
