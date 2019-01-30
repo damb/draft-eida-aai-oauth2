@@ -13,10 +13,10 @@ restored and reused for accessing EIDA endpoints (i.e.
 =eida-endpoint/fdsnws-dataselect/queryauth=) to be federated.
 
 [[https://docs.gempa.de/seiscomp3/current/apps/fdsnws.html][SeisComp3
-FDSNWSs (Version 1.1b)]] protected resources currently implement restricted
-data access both by means of HTTP Digest authentication and a token based
-authentication mechanism. Due to the original requirement to stick to the
-current FDSNWS standard the implementation is based on:
+FDSNWSs]] protected resources currently implement restricted data access both
+by means of HTTP Digest authentication and a token based authentication
+mechanism. Due to the original requirement to stick to the current FDSNWS
+standard the implementation is based on:
   - EUDAT [[https://b2access.eudat.eu/home/][B2ACCESS]] (federated identities
     e.g. [[https://edugain.org/][eduGAIN]])
     [[http://docs.oasis-open.org/security/saml/v2.0/saml-core-2.0-os.pdf][SAML2.0]]
