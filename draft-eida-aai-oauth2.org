@@ -48,8 +48,8 @@ for restricted data access.
 * DONE Open Questions
 
   - [ ] Should protected resources of EIDA-RS implement both HTTP POST and
-    GET methods? If using clients make use of the HTTP GET method it should
-    be emphazized that access tokens might be logged.
+    GET methods? If clients make use of the HTTP GET method it should be
+    emphazized that access tokens might be logged.
 
     Internally, when speaking about proxied access, protected resources of
     EIDA-GRS instances MUST call other protected resources of EIDA-RS
@@ -731,6 +731,14 @@ request session.
 
 It is on the client's own responsibility to negotiate with B2ACCESS the
 correct attributes and scope the access token is issued for.
+
+Internally, EIDA-AS SHOULD periodically synchronize with B2ACCESS the state
+of the access tokens cached. Depending on the refresh rate and the access
+token's expiration time EIDA-AS is able to detect revoked tokens, too. If a
+protected request session exceeds the access token's expiration time
+synchronization with B2ACCESS is not possible, anymore. For the purpose of
+revocation EIDA-AS SHOULD implement its own token revocation endpoint. Token
+revocation requests and responses are not specified, yet.
 
 *** DONE EIDA-AS B2ACCESS Adapter
 
