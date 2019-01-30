@@ -501,9 +501,9 @@ should be performed.
 
 **** DONE Registration Request
 
-Access token registration exclusively MUST be granted to previously
+*Note*: Access token registration exclusively SHOULD be granted to previously
 registered EIDA-GRSs. Both implementation and level of protecting the access
-needs still to be discussed.
+needs still needs to be discussed.
 
 The protected resource calls the access token registration endpoint using an
 HTTP POST [[https://tools.ietf.org/html/rfc7231][RFC7231]] request with
