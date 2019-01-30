@@ -33,7 +33,7 @@ two-step approach:
     resource; the web-service then returns FDSNWS standard conform access
     credentials
   2. The client uses those access credentials to access the protected
-  resource (i.e. the ~/queryauth~ resource)
+    resource (i.e. the ~/queryauth~ resource)
 
 It is correct that a token based AAI mechanism much better fulfils the
 requirements of a federated FDSNWS environment. Unfortunately, from the
