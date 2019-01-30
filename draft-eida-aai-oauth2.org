@@ -387,9 +387,10 @@ For a valid request to the access token introspection endpoint of EIDA-AS,
 the authorisation server will respond with a JSON object
 ([[https://tools.ietf.org/html/rfc7159][RFC7159]]) with the ~active~ field
 set to ~true~ and an optional ~scope~ field. If the response containes a
-~scope~ field, the protected resource MUST perform a scope related
-validation. If successful, the client's call to the protected resource
-endpoint MUST respond in accordance with the FDSNWS specifications.
+~scope~ field and the protected resource is implemented by an EIDA-ERS, the
+protected resource MUST perform a scope related validation. If successful,
+the client's call to the protected resource endpoint MUST respond in
+accordance with the FDSNWS specifications.
 
 **** TODO Proxied Access To Protected EIDA Endpoint Resources
 
