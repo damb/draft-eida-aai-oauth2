@@ -224,7 +224,7 @@ first implementation stage.
 ** DONE Token Based Authentication
 
 For restricted data access all protected resources within EIDA MUST implement
-a stateless access token based authentication interface. Authenticated
+a stateless bearer access token based authentication interface. Authenticated
 requests MUST be performed using the /Authorization/ request header field
 defined in [[https://tools.ietf.org/html/rfc6750#section-2.1][Section 2.1 of
 RFC6750]].
@@ -233,10 +233,9 @@ Protected resources from both EIDA-GRS and EIDA-ERS perform the access token
 validation using the EUDAT Authorization Service (EUDAT-AS), namely B2ACCESS.
 Thus, the access token is sent to the token endpoint as defined by the
 B2ACCESS OpenID configuration guidelines.
-EIDA resource servers send access tokens to B2ACCESS using the
-/Authorization/ request header field. All EIDA resource servers MUST perform
-this valdidation in order to be able to return the appropriate HTTP status
-codes in case of errors.
+All protected resources of EIDA resource servers MUST perform this
+valdidation in order to be able to return the appropriate HTTP status codes
+in case of errors.
 
 Once a protected resource of a EIDA-GRS receives a request containing a
 bearer access token, the EIDA-GRS MUST forward this access token for
