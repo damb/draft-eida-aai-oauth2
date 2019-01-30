@@ -127,8 +127,6 @@ for restricted data access.
     *Cons*:
     - Additional complexity
 
-
-
 * DONE Requirements
 
 The new EIDA AAI has to meet the following requirements:
