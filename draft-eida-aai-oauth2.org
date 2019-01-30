@@ -12,9 +12,10 @@ credentials are hashed before being passed from a client to
 restored and reused for accessing EIDA endpoints (i.e.
 =eida-endpoint/fdsnws-dataselect/queryauth=) to be federated.
 
+Protected resources of
 [[https://docs.gempa.de/seiscomp3/current/apps/fdsnws.html][SeisComp3
-FDSNWSs]] protected resources currently implement restricted data access both
-by means of HTTP Digest authentication and a token based authentication
+FDSNWS]] instances currently implement restricted data access both by means
+of HTTP Digest authentication and a token based authentication
 mechanism. Due to the original requirement to stick to the current FDSNWS
 standard the implementation is based on:
   - EUDAT [[https://b2access.eudat.eu/home/][B2ACCESS]] (federated identities
