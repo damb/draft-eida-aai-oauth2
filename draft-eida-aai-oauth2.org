@@ -1,0 +1,791 @@
+#+TITLE: Proposal or an EIDA AAI based on B2ACCESS OAuth2.0
+
+* DONE Open Questions
+
+  - [ ] For the purpose of access token session registration/unregistration
+    EIDA-AS needs to uniquely identify protected resources of EIDA-GRS
+    ideally independent from the resource server's IP address. Which approach
+    to be chosen to implement unique identification?
+
+    *Suggestion*: Protected resource certificate authentication
+
+    EIDA-AS authenticates protected resources of EIDA-RS by means of
+    certificates and optionally by checking the IP address range. Calls from
+    protected resources to the registration, introspection and unregistration
+    endpoint of EIDA-AS may be signed. Signing might be implemented by e.g.:
+
+    - [[https://tools.ietf.org/html/draft-cavage-http-signatures-10][HTTP
+      Signatures (Draft)]] (marked as /work in progress/). An exemplary
+      implementation is provided by e.g.
+      [[https://github.com/kislyuk/requests-http-signature][requests-http-signature]].
+    - Payload signature by means of JWT
+      ([[https://tools.ietf.org/html/rfc7519][RFC7519]])
+    - Custom payload signature as proposed by Andres H. (PGP ASCII-armored
+      clearsigned)
+
+    [[https://tools.ietf.org/html/draft-cavage-http-signatures-10][HTTP
+    Signatures (Draft)]] and the custom PGP based payload signature would be
+    compatible with standards such as
+    [[https://tools.ietf.org/html/rfc7662][RFC7662]].
+
+    JWT ([[https://tools.ietf.org/html/rfc7519][RFC7519]]) both is well 
+    standardized and provides payload signature
+    [[https://tools.ietf.org/html/rfc7515][JWS (RFC7515)]], however, its
+    usage is not compatible with
+    [[https://tools.ietf.org/html/rfc7662][OAuth2.0 Token Introspection
+    (RFC7662)]].
+
+  - [ ] As a consequence of the previous question and the purposed solution,
+    a second question arises i.e. which approach to be chosen in order to
+    obtain an automatic certificate signing request (CSR) infrastructure?
+
+    *Suggestions*:
+
+    Ideally, EIDA-AS implements its own custom CSR endpoint. Hence, public
+    keys of protected resources would be signed by a EIDA online
+    certificate authority (CA). The larges benefit: Access control to EIDA-AS
+    depends exclusively on the EIDA online CA. Even though, this approach
+    seems to be the most generic, further questions arise, such as:
+      - Costs of implementing own CSR infrastructure?
+      - Which approach to be chosen in order to obtain automatic CSR issued?
+        (An exemplary approach may be [[https://letsencrypt.org/][Let's
+        Encrypt]]'s [[https://certbot.eff.org/][certbot]]).
+      - ...
+
+    B2ACCESS implements a CSR endpoint. Certificates are issued based on the
+    online EUDAT CA. In principle, protected resources may use this facility
+    to obtain certificates. Limitations and restrictions are:
+    - Certificates have a lifetime limited to 12 hours. As a consequence,
+      protected resources of EIDA-RS instances would need to repeatedly issue
+      CSRs (e.g. every 9 hours). Furthermore, installing and renewing the
+      certificates manually is no option.
+    - In order to issue a CSR, protected resources within EIDA would need to
+      be equipped with a CSR issuing tool similar to
+      [[https://letsencrypt.org/][Let's Encrypt]]'s
+      [[https://certbot.eff.org/][certbot]]. The EIDA CSR-tool (EIDA-CSR) would need to be
+      A) registered as B2ACCESS OAuth2.0 client (Currently, client
+      registration seems to be only manually possible.)
+      B) implement one of the OAuth2.0 flows allowed by B2ACCESS.
+    - Besides, a technical user would be required to obtain OAuth2.0 bearer
+      access tokens from B2ACCESS.
+
+    Alternatively, another third-party CA may be used.
+
+    *Pros*:
+    - Security
+    - Scalability; including as automatic protected resource provisioning
+    - The CA decouples protected resources from authorization server (i.e.
+      EIDA-AS)
+    - Certificate based authentication makes further protection of EIDA-AS
+      resources obsolete (e.g. password based authentication etc).
+
+    *Cons*:
+    - Additional complexity
+
+* Introduction
+
+Implementing federated restricted data access for EIDA Web-Services based on
+the contemporary
+[[http://www.fdsn.org/webservices/FDSN-WS-Specifications-1.1.pdf][FDSNWS
+Specifications (Version 1.1b)]] (i.e. HTTP Digest authentication
+[[https://tools.ietf.org/html/rfc2617][RFC2617]]) is not possible: User
+credentials are hashed before being passed from a client to
+=eida-federator/fdsnws-dataselect/queryauth= and consequently cannot be
+restored and reused for accessing EIDA endpoints (i.e.
+=eida-endpoint/fdsnws-dataselect/queryauth=) to be federated.
+
+[[https://docs.gempa.de/seiscomp3/current/apps/fdsnws.html][SeisComp3
+FDSNWSs (Version 1.1b)]] protected resources currently implement restricted
+data access both by means of HTTP Digest authentication and a token based
+authentication mechanism. Due to the original requirement to stick to the
+current FDSNWS standard the implementation is based on:
+  - EUDAT [[https://b2access.eudat.eu/home/][B2ACCESS]] (federated identities
+    e.g. [[https://edugain.org/][eduGAIN]])
+    [[http://docs.oasis-open.org/security/saml/v2.0/saml-core-2.0-os.pdf][SAML2.0]]
+    token based authorization,
+  - a custom *client service* implementation wrapping the SAML2.0
+    tokens issued by B2ACCESS into a custom token format,
+  - a custom access token format based on a PGP ASCII-armored, digitally
+    signed JSON object
+  - and an additional ~/auth~ resource for EIDA-ERS instances.
+
+Henceforth, accessing a protected resource is implemented following a
+two-step approach:
+  1. The client has to transmit the access token using the service's ~/auth~
+    resource; the web-service then returns FDSNWS standard conform access
+    credentials
+  2. The client uses those access credentials to access the protected
+  resource (i.e. the ~/queryauth~ resource)
+
+It is correct that a token based AAI mechanism much better fulfils the
+requirements of a federated FDSNWS environment. Unfortunately, from the
+client's point of view, the approach is not straight forward to use. In
+addition, it introduces multiple serious security issues.
+
+This document describes a token based AAI mechanism within EIDA relying on
+current AAI standards. In favor of a full featured token based AAI mechanism
+we partly must break compatibility with the current FDSN Web-Service standard
+for restricted data access.
+
+* DONE Requirements
+
+The new EIDA AAI has to meet the following requirements:
+- [X] A unique interface for protected resources of both EIDA gateway and
+  endpoint services.
+- [X] Decoupling of AAI from resource servers; authorization is provided by
+  means of an authorization server.
+- [X] Scriptability of resource servers.
+- [X] Scalability; compatibility with further services built on top e.g.
+  EIDA /Mediator/ or chained EIDA /Federator/ instances
+- [X] The usage of a well documented ideally standardized structured token
+  format. The token format should allow both digital signatures and digital
+  encryption.
+- [X] No storage of access credentials/tokens (between single
+  requests). Stateless services.
+- [X] Reasonable access token lifetimes e.g. 3600s.
+- [X] Simplicity: Transparent /scope/ usage from the end user's
+  perspective. The scope must be validated by the API (i.e. protected
+  resource) meanwhile the general authorization must be granted by the
+  authorization server
+- [X] Ability to add /local/ user accounts to a federated identity provider.
+- [X] Ability to transparently revoke end user access.
+- [X] Fully compatible with present standards.
+- [ ] Protected resources are not allowed to acquire resources for clients
+  not properly authorized. This requirement follows the paradigm: First,
+  validate the authorization of a request, second bind resources within EIDA.
+
+* DONE Terminology
+
+EIDA-ERS (EIDA /Endpoint/ Resource Server)
+  Endpoint resource server within EIDA providing protected resources. In case
+  of EIDA endpoint resource servers implement the FDSN webservice interface.
+  An exemplary implementation is the
+  [[https://docs.gempa.de/seiscomp3/current/apps/fdsnws.html][SeisComp3
+  FDSNWS]] implementation.
+
+EIDA-GRS (EIDA /Gateway/ Resource Server)
+  Gateway resource server implementing protected resources within EIDA.
+  Gateway resource servers build on top of either EIDA-ERS or rather other
+  gateway resource servers, respectively. Within EIDA, gateway resource
+  servers implement transparent facades. While in terms of the well-known
+  [[https://en.wikipedia.org/wiki/Composite_pattern][Composite Design
+  Pattern]] EIDA-ERS implementations correspond to the leafs, EIDA-GRS
+  represent the composites.
+
+EIDA-RS (EIDA Resource Server)
+  Umbrella term of EIDA-ERS and EIDA-GRS. In terms of the 
+  [[https://en.wikipedia.org/wiki/Composite_pattern][Composite
+  Design Pattern]] EIDA-RS correspond to components.
+
+B2ACCESS (EUDAT Authorization Server)
+  B2ACCESS is the name of the EUDAT authorization server. B2ACCESS implements
+  an authorization and authentication infrastructure providing identity
+  federation. EIDA relies on the OAuth2.0/OIDC authorization server
+  implementation of B2ACCESS. The expresions B2ACCESS and EUDAT-AS are used
+  synonymously within this document.
+
+EIDA-AS (EIDA Authorization Server)
+  Authorization server built on top of B2ACCESS in order to fulfil EIDA AAI
+  specific requirements.
+
+* DONE B2ACCESS Restrictions
+
+As of 2019-01-14 the [[https://eudat.eu/services/b2access][B2ACCESS]]
+OAuth2.0/OIDC implementation exclusively uses Bearer tokens (JWT may be
+implemented in future releases). The authentication grant types implemented
+are:
+  - Authentication Code
+  - Implicit.
+
+Besides, refresh tokens may be used by clients.
+
+A webhook (i.e. user defined HTTP callbacks triggered by events) based
+messaging system is not planned to be implemented. The current OAuth2.0/OIDC
+configuration can be found at
+[[https://b2access.eudat.eu/oauth2/.well-known/openid-configuration]].
+
+* DONE EIDA AAI Overview
+
+The following purpose is based on the well established OAuth2.0 standard
+([[https://tools.ietf.org/html/rfc6749][RFC6749]] and
+[[https://tools.ietf.org/html/rfc6750][RFC6750]]) as well as the boundery
+conditions set by the EUDAT [[https://eudat.eu/services/b2access][B2ACCESS]]
+authentication and authorization platform. The purposal is subdevided into
+implementation stages.
+
+* TODO Implementation Stages
+
+In this section two implementation stages are proposed. While the first
+implementation stage introduces an OAuth2.0 bearer token based interface for
+protected resources of EIDA resource servers the second implementation stage
+proposes the implementation of a EIDA Authorization Services on top of the
+first implementation stage.
+
+** DONE Token Based Authentication
+
+For restricted data access all protected resources within EIDA MUST implement
+a stateless access token based authentication interface. Authenticated
+requests MUST be performed using the /Authorization/ request header field
+defined in [[https://tools.ietf.org/html/rfc6750#section-2.1][Section 2.1 of
+RFC6750]].
+
+Protected resources from both EIDA-GRS and EIDA-ERS perform the access token
+validation using the EUDAT Authorization Service (EUDAT-AS), namely B2ACCESS.
+Thus, the access token is sent to the token endpoint as defined by the
+B2ACCESS OpenID configuration guidelines.
+EIDA resource servers send access tokens to B2ACCESS using the
+/Authorization/ request header field. All EIDA resource servers MUST perform
+this valdidation in order to be able to return the appropriate HTTP status
+codes in case of errors.
+
+Once a protected resource of a EIDA-GRS receives a request containing a
+bearer access token, the EIDA-GRS MUST forward this access token for
+subsequent requests to EIDA-ERS. EIDA resource servers MUST NOT store access
+tokens between two single requests.
+
+*** DONE Protected Resource Request
+
+Protected resources of EIDA-RS will implement authentication requests using
+the authorization request header field as defined in
+[[https://tools.ietf.org/html/rfc6750#section-2.1][Section 2.1 of RFC6750]].
+
+The following is a non-normative exemplary end-user client request:
+
+#+BEGIN_SRC
+  GET /resource?net=Z3sta=A051&cha=HHZ HTTP/1.1
+  Host: server.example.com
+  Authorization: Bearer mF_9.B5f-4.1JqM
+#+END_SRC
+
+Request parameters for protected resources are equal to those for unprotected
+resources. Request parameters are defined in the
+[[http://www.fdsn.org/webservices/FDSN-WS-Specifications-1.1.pdf][FDSN
+Web-Service Specifications (Version 1.1b)]].
+
+Protected resources of EIDA-GRS MUST only perform HTTP POST requests
+([[https://tools.ietf.org/html/rfc7231][RFC7231]]) to other protected
+resources within EIDA.
+
+*** DONE Protected Resource Response
+
+If the access token validation (authentication) was successful and the
+client is authorized to request the data as specified the protected resource
+MUST return the data as defined in the
+[[https://www.fdsn.org/webservices/FDSN-WS-Specifications-1.1.pdf][FDSN
+Web-Service Specifications]].
+
+*** DONE Error Codes
+
+In case a request for restricted data fails protected resources of EIDA-RS
+MUST return HTTP status codes as defined in the
+[[https://www.fdsn.org/webservices/FDSN-WS-Specifications-1.1.pdf][FDSN
+Web-Service Specifications]].
+
+~invalid_request~
+  In addition to the reasons defined in the FDSNWS specifications the EIDA
+  resource server MUST return HTTP 400 (Bad Request) status code if a method
+  including an access token is different as defined above. 
+
+~invalid_token~
+  The access token provided is expired, revoked, malformed, or
+  invalid for other reasons. The EIDA-RS MUST respond with the HTTP 401
+  (Unauthorized) status code. The client MAY request a new access token from
+  B2ACCESS and retry the protected resource request.
+
+~insufficient_scope~
+  An EIDA resource server MUST return HTTP 403 (Forbidden) status code if the
+  request requires higher privileges than provided.
+
+If the request lacks any authentication information (e.g. the client was
+unaware that authentication is necessary or attempted using an unsupported
+authentication method), the resource server MUST NOT include an error code
+or other error information.
+
+*** DONE Design Considerations
+
+Since all EIDA-RS implementations support a unique interface the approach
+described above is easily scaleable. Also, a scenario with multiple chained
+EIDA-GRS may be feasible. While the scope management and user provisioning is
+implemented by B2ACCESS the scope is evaluated and validated from EIDA-RS
+instances. In addition, users easily may be revoked. That is even during a
+request processed by an EIDA-GRS.
+
+Drawbacks of this architecture are:
+
+  - EUDAT-AS requires access tokens to be validated by B2ACCESS. If EIDA
+    grows this probably will result in an increasingly /chatty/ system bound
+    to B2ACCESS. In future, a solution for this issue may be provided by JWT
+    defined by [[https://tools.ietf.org/html/rfc7519][RFC7519]]. However,
+    currently B2ACCESS exclusively supports plain bearer access tokens
+    ([[https://tools.ietf.org/html/rfc6750][RFC6750]]).
+
+  - Due to the limited lifetime of access tokens a request to an EIDA-GRS may
+    not be processable until the access token expires. Especially, this is
+    critical if a EIDA-GRS implementation processes a single request
+    granularly with EIDA-ERS. 
+    From the client's point of view, the result would be an uncomplete
+    response due to an access token which expired during the EIDA-GRS
+    /protected resource session/. A solution for this issue is proposed in
+    the subsequent implementation stage.
+
+** TODO EIDA Authorization Service
+
+Access tokens may expire during protected EIDA-GRS request sessions. For this
+reason this implementation stage introduces an EIDA-AS. The service
+implements a centralized context dependent cache virtually extending the
+lifetime of access tokens for request sessions within EIDA. EIDA-AS is
+implemented as a adapting wrapper of B2ACCESS.
+
+*** DONE Context Dependent Access Token Cache
+
+EIDA-AAI uses plain bearer access tokens in order to authenticate
+clients. Due to security reasons, such access tokens usually expire within
+minutes. However, since a single request to a protected resource of a
+EIDA-GRS may lead to multiple requests to other protected resources within
+EIDA (demultiplexing) the access token may expire during this session.
+In order to hide the access token expiration and its consequences from the
+end-user, EIDA-AAI must introduce the concept of a secure access token cache
+implementing the secure temporary storage of access tokens due to EIDA-GRS
+request sessions.
+
+EIDA-GRS are implemented as transparent facades i.e. a client also is allowed
+to use EIDA-ERS directly. To increase usability both unprotected and
+protected resources within EIDA SHOULD implement a uniform API. Until now,
+EIDA has no standardized mechanism to distinguish a direct end-user request
+from a internal request.
+
+In order to allow protected resources to distinguish between a direct end-user
+request to a protected resource and an internal protected request session
+within EIDA (i.e. a protected request from a EIDA-GRS) we introduce the
+concept of a EIDA-GRS request session identifier access token context.
+
+Protected resources of EIDA-GRS must keep track of request session
+identifiers in order to reference the access token with EIDA-AS.
+
+A context dependent access token cache is implemented by the EIDA-AS. In
+the context of protected resources within EIDA, EIDA-AS adapts the interface
+of B2ACCESS. This approach has two main advantages:
+
+  - Authorization server singleton: There is only one single authorization
+    service, namely EIDA-AS.
+  - Maintainability: While the interface of the third-party service B2ACCESS
+    may change over time the interface of EIDA-AS may remain unchanged.
+
+*** DONE Protocol Flow
+
+A client may access protected resources within EIDA either by means of an
+EIDA-GRS (i.e. /proxied/ access) or an EIDA-ERS (i.e. /direct/ access).
+
+**** DONE Direct Access To Protected EIDA Endpoint Resources
+
+Directly accessing a protected resource of a EIDA-ERS implies that no access
+token previously was cached with EIDA-AS. If a client requests data from a
+EIDA-ERS directly, the protected resource firstly MUST introspect the access
+token with EIDA-AS. Introspection endpoint requests MUST be performed as
+defined below.
+
+For a valid request to the access token introspection endpoint of EIDA-AS,
+the authorisation server will respond with a JSON object
+([[https://tools.ietf.org/html/rfc7159][RFC7159]]) with the ~active~ field
+set to ~true~ and an optional ~scope~ field. If the response containes a
+~scope~ field, the protected resource MUST perform a scope related
+validation. If successful, the client's call to the protected resource
+endpoint MUST respond in accordance with the FDSNWS specifications.
+
+**** TODO Proxied Access To Protected EIDA Endpoint Resources
+
+A. A client calls a protected resource implemented by a EIDA-GRS as defined
+  in Section [[Protected Resource Requests]].
+
+B. The protected resource registers the bearer access token passed with the
+  token registration endpoint of the authorization server i.e. EIDA-AS. If
+  EIDA-AS was not able to successfully register a protected request session
+  the protected resource returns a response as defined in Section [[Protected
+  Resource Response And Error Response]]. If the protected request session
+  was successfully initialized EIDA-AS returns a [[Request Session
+  Identifiers][request session identifier]].
+
+C. The protected resource implemented by EIDA-GRS calls protected resources
+  of EIDA-ERS instances necessary to fullfil the client's request. The
+  EIDA-ERS protected resource calls now ship the ~request_session_ids~
+  parameter with the value returned from the registration endpoint of EIDA-AS.
+
+D. Once a protected resource implemented by a EIDA-ERS receives the request,
+  firstly, the bearer access token is validated with the token introspection
+  endpoint of EIDA-AS. The request is performed as defined in Section [[Token
+  Introspection Request]]. Now, the received request session identifier is
+  included with the token introspection request. Next, the protected resource
+  MUST verify if the client was authorized considering the token's scope.
+  Only, if both the token introspection and the scope validation was
+  successful the protected resource MUST return data.
+
+E. Unless the protected resource of the EIDA-GRS did not fulfil the clients
+  request, D. is repeated.
+
+F. If the protected resource of the EIDA-GRS received all data neccessary to
+  fulfil the clients request, the protected resource MUST unregister the
+  protected resource session previously registered. For this purpose, the
+  protected resource calls the token unregistration endpoint of EIDA-AS as
+  defined in Section [[Unregistration Request]].
+
+*** DONE Chaining Protected Resource Servers
+
+When chaining several EIDA-GRSs an access token may expire on his way from
+one EIDA-GRS_{i} to the next EIDA-GRS_{i+1}. If EIDA-GRS_{i+i} now wants to
+register the access token with EIDA-AS, EIDA-AS would not be able to validate
+the access token with B2ACCESS, anymore. However, in the context of the
+cached access token from EIDA-GRS_{i} the access token registration of
+EIDA-GRS_{i+1} still should be valid.
+
+The problem is solved with chained request session identifiers. Thus, both
+internal protected resource requests and requests for access token
+registration with EIDA-AS must contain at least one request identifier.
+
+*** DONE Protected Resource Requests
+
+Request parameters for protected resources are equal to those for unprotected
+resources. Request parameters are defined in the
+[[http://www.fdsn.org/webservices/FDSN-WS-Specifications-1.1.pdf][FDSN
+Web-Service Specifications (Version 1.1b)]].
+
+Besides, one additional parameter is introduced:
+
+~requestsessionids~
+  A string containing a comma-separated list of request session identifiers
+  associated with the access token passed. The parameter MUST be exclusively
+  set by EIDA-GRS. The parameter MUST be consumed by protected resource
+  implementations within EIDA.
+
+The following EIDA internal request is a non-normative example:
+
+#+BEGIN_SRC
+  POST /resource HTTP/1.1
+  Host: server.example.com
+  Accept: application/vnd.fdsn.mseed
+  Content-Type: application/x-www-form-urlencoded
+  Authorization: Bearer mF_9.B5f-4.1JqM
+
+  requestsessionids=05d940fdd4c279b47ab3e3b483e276a95cac [...]
+  Z3 A051 * * 2019-01-01T00:00:00 2019-02-01T00:00:00
+#+END_SRC
+
+Protected resources of EIDA-GRS MUST only perform HTTP POST
+requests ([[https://tools.ietf.org/html/rfc7231][RFC7231]]) to other
+protected resources within EIDA.
+
+*** DONE Protected Resource Response And Error Response
+
+Both protected resource responses and error responses are identical with the
+definition in the first implementation stage.
+
+*** DONE Request Session Identifiers
+
+Request session identifiers are absolutely critial in the context of
+security.
+
+Request session identifiers MUST be implemented as hexadecimal encoded opaque
+tokens.
+
+A request session identifier opaque token MUST have a minimum length of 255
+bytes.
+
+The usage of request session identifiers requires protected resources of
+EIDA-GRS to implement a bookkeeping mechanism for protected request sessions.
+The implementation of such a mechanism is out of scope of this document.
+
+*** DONE Access Token Registration
+
+Within EIDA exclusively EIDA-GRSs MUST register access tokens with the
+EIDA-AS cache. For an EIDA-GRS the process of access token registration is
+equal to access token validation. No further access token introspection
+should be performed.
+
+**** DONE Registration Request
+
+Access token registration exclusively MUST be granted to previously
+registered EIDA-GRSs. Both implementation and level of protecting the access
+needs still to be discussed.
+
+The protected resource calls the access token registration endpoint using an
+HTTP POST [[https://tools.ietf.org/html/rfc7231][RFC7231]] request with
+parameters sent as ~application/x-www-form-urlencoded~ data as defined in
+[[https://www.w3.org/TR/html5/][W3C.REC-html5]]. The request defines the
+following parameters:
+
+~access_token~
+  REQUIRED. The bearer access token as used by B2ACCESS.
+
+~request_session_ids~ (request session identifiers)
+  OPTIONAL. A comma-separated string of unique request session identifiers
+  mapping the access token in the EIDA-AS cache. If no request session
+  identifier is present or the parameter is not passed, EIDA-AS assumes that
+  a new request session must be initialized. Hence, EIDA-AS firstly verifies
+  the access token with B2ACCESS. If the access token validation was
+  successful, the access token is cached.
+  For one or more request session identifiers, EIDA-AS assumes that
+  the access token is used in a chained EIDA-GRS environment. EIDA-AS does
+  not verify the access token with B2ACCESS anymore - but does verify the
+  access token with previously cached access tokens.
+
+~cache_invocation~ (cache invocation)
+  The cache invocation claim identifies the access token's cache expiration
+  time on or after the AT MUST NOT be cached anymore. The processing of the
+  cache invocation claim requires that the current date/time MUST be before
+  the expiration date/time listed in the cache invocation claim. Its value
+  MUST be a number NumericDate value.
+  If the cache invocation time expired EIDA-AS MUST invalidate the access
+  token request session. The implementation of this claim is OPTIONAL.
+
+In future, the access token registration endpoint MAY accept additional
+parameters to provide further context to the access token caching session.
+For instance, an ~aud~ (audience) parameter could be defined restricting the
+protected resources the access token caching session is indented for. An
+exemplary implementation of such a parameter is described in
+[[https://tools.ietf.org/html/rfc7519#section-4.1.3][Section 4.1.3 of
+RFC7519]].
+
+**** DONE Registration Response
+
+For an EIDA-GRS access token registration with EIDA-AS follows the principle
+access token registration means access token validation. Hence, the
+registration endpoint response corresponds to the [[Token Introspection
+Response][introspection endpoint response]].
+
+For a successful access token registration EIDA-AS additionally MUST include
+the following top-level member:
+
+~request_session_id~
+  REQUIRED. JSON string of a request session identifier referencing the
+  access token within the EIDA-AS cache.
+
+**** DONE Error Response
+
+The registration endpoint error response corresponds to the introspection
+endpoint error response.
+
+*** DONE Access Token Introspection
+
+In order to provide access token introspection EIDA-AS implements the
+introspection endpoint. Note, that the token introspection has not to be
+confused with the token validation endpoint implemented by B2ACCESS.
+
+**** DONE Token Introspection Request
+
+*Note*: RFC7662 specifies the introspection endpoint to be protected. How the
+protection of the resource should look like (e.g. format, standard, etc.) is
+still to be discussed.
+
+Protected resources within EIDA MUST perform the token introspection request
+as defined in [[https://tools.ietf.org/html/rfc7662][RFC7662]].
+
+If the protected resource received a single or multiple request identifiers
+from a client, the request identifier MUST be used unchanged when performing
+a request to the access token introspection endpoint. Request identifiers are
+included as follows:
+
+~request_session_ids~
+  String containing a comma-separated list of request session
+  identifiers associated with the access token in the cache.
+
+**** DONE Token Introspection Response
+The EIDA-AS token introspection endpoint responds with a JSON object in
+=application/json= format with the following top-level members:
+
+~active~
+  REQUIRED. Boolean indicator of whether or not the presented token is
+  currently active. A ~true~ indicates that the given token is either cached
+  or not expired.
+
+~scope~
+  OPTIONAL. A JSON string containing a space-separated list of scopes
+  associated with this token, in the format described in
+  [[https://tools.ietf.org/html/rfc6749#section-3.3][Section 3.3 of OAuth 2.0
+  (RFC6749)]].
+
+~sub~
+  OPTIONAL. Subject of the token, as defined in JWT
+  ([[https://tools.ietf.org/html/rfc7519][RFC7519]]). Usually a
+  machine-readable identifier of the resource owner who authorized this
+  token.
+
+To prevent EIDA resource servers from any ambiguities the token introspection
+endpoint response MUST NOT contain the ~exp~ claim as defined in
+([[https://tools.ietf.org/html/rfc7519][RFC7519]]). 
+
+If the introspection call is properly authorized but the token is not active,
+does not exist on this server, or the protected resource is not allowed to
+introspect this particular token, then the authorization server MUST return
+an introspection response with the ~active~ field set to ~false~.
+
+The following is a non-normative example response:
+
+#+BEGIN_SRC
+  HTTP/1.1 200 OK
+  Content-Type: application/json
+
+  {
+    "active": false
+  }
+#+END_SRC
+
+To avoid disclosing the internal state of the authorization server, the
+introspection response for an inactive token MUST NOT contain any
+additional claims beyond the required ~active~ claim (with its value set to
+~false~).
+
+**** DONE Error Response
+On errors EIDA-AS implements the behaviour as defined in
+[[https://tools.ietf.org/html/rfc7662#section-2.3][Section 2.3 of RFC7662]].
+
+*** DONE Access Token Unregistration
+
+EIDA-AS MUST guarantee that access token unregistration is exclusively
+performed by the protected resource of the EIDA-GRS which previously
+registered the access token. Note, that this requires identifying protected
+resources within EIDA uniquely. The implementation of such a unique
+identification mechanism still needs to be discussed.
+
+**** DONE Unregistration Request
+
+The protected resource calls the access token unregistration endpoint using
+an HTTP DELETE ([[https://tools.ietf.org/html/rfc7231][RFC7231]]) request
+with parameters sent as ~application/x-www-form-urlencoded~ data as defined
+in [[https://www.w3.org/TR/html5/][W3C.REC-html5]]. The following parameters
+are sent:
+
+~access_token~
+  REQUIRED. String identifying a single access token to be removed. 
+
+~request_session_ids~
+  REQUIRED. String containing a space-separated list of unique request
+  session identifiers associated with the access token. If multiple request
+  session identifiers are sent EIDA-AS invalidates the access token cached
+  with the context of the last request session identifier in the list.
+
+**** DONE Unregistration Response
+
+The authorization server responds with a JSON object
+([[https://tools.ietf.org/html/rfc7159][RFC7159]]) in ~application/json~
+format with the following top-level members:
+
+~token~
+  The access token removed from the authorization server cache.
+
+The following is a non-normative example response:
+
+#+BEGIN_SRC
+  HTTP/1.1 200 OK
+  Content-Type: application/json
+
+  {
+    "token": "2YotnFZFEjr1zCsicMWpAA"  
+  }
+#+END_SRC
+
+**** DONE Error Response
+
+If the protected resource requesting access token unregistration is not
+authorized to execute its call to the unregistration endpoint the
+authorization server will respond with HTTP 401 (Unauthorized).
+
+If the protected resource authenticated successfully and the request was not
+well formatted or there is a mismatch between the parameters and values
+sent, the access token unregistration endpoint will respond with an HTTP 400
+(Bad Request).
+
+*** DONE EIDA Protected Resource Registration
+
+This section still is has to be discussed. See also the section with [[Open
+Questions][open questions]].
+
+Assuming protected resources authentication is based on certificates, EIDA-AS
+MAY accept all protected resources certified by a trusted CA. Restriction of
+protected resources due to the IP address range utilized may be implemented,
+optionally.
+
+*** DONE EIDA-AS And B2ACCESS Synchronization
+
+The registration of an access token request session with EIDA-AS MUST be only
+valid if EIDA-AS was able to successfully cache token related data from
+the B2ACCESS token information endpoint. Optionally, EIDA-AS will try to
+fetch data from the B2ACCESS user information endpoint.
+
+EIDA-AS will temporarily cache this data. EIDA-AS MUST remove the data as
+soon as the protected resource asks EIDA-AS to unregister the access token's
+request session.
+
+It is on the client's own responsibility to negotiate with B2ACCESS the
+correct attributes and scope the access token is issued for.
+
+*** DONE EIDA-AS B2ACCESS Adapter
+
+For protected resources of EIDA-RS solely EIDA-AS is used as authorization
+server. EIDA-AS adapts the access token validation related interface of
+B2ACCESS for EIDA internal purposes.
+
+For the purpose of e.g.
+
+  - implementation of OAuth2.0 authorization grant types
+  - obtaining an access token
+  - making use of refresh tokens
+
+clients preliminary should stick to the API provided by B2ACCESS.
+
+*** DONE Design and Security Considerations
+
+  - The design proposed tries to keep it simple i.e. protected resources of
+    EIDA-GRS exclusively register protected request sessions meanwhile
+    protected resources of EIDA-ERS perform only access token introspection.
+
+    Protected resources within EIDA do not need to change their behaviour
+    depending on request session identifiers. Request session identifiers are
+    simply passed to EIDA-AS. Decisioning is encapsulated within EIDA-AS.
+
+  - In theory, all protected resources of EIDA-RS implementations may both
+    register and introspect access tokens with EIDA-AS. At the time being,
+    there is no mechanism implemented enforcing that exclusively protected
+    resources of EIDA-GRS are allowed to register/unregister protected
+    request sessions with EIDA-AS, and reversely, that protected resources
+    implemented by EIDA-ERS are restricted to exclusively perform token
+    introspection. I.e. it is only this document enforcing this restriction.
+
+    Implementing a different behaviour would break with the proposed EIDA-AAI
+    architecture.
+
+    Note, that enforcing the restriction would require to distinguish
+    between EIDA-GRS instances and EIDA-ERS instances. In future, this
+    distinction may be implemented by e.g. an EIDA (protected) resource
+    registry.
+
+  - Restricting access token sessions to a subset of the protected resources
+    within EIDA would introduce an additional mechanism to increase security.
+    Only those protected resources would be allowed to introspect the access
+    token session previously determined by the EIDA-GRS registrating the
+    access token session.
+
+    Again, enforcing requires to implement an EIDA (protected) resource
+    registry unambigously identifying protected resources within EIDA.
+
+* DONE Refresh Tokens
+
+Clients MAY make use of refresh tokens as defined in
+[[https://tools.ietf.org/html/rfc6749#section-1.5][Section 1.5 of OAuth2.0
+(RFC6749)]].
+
+In order to obtain a new access token using refresh token credentials a
+client should directly negotiate with B2ACCESS. Further details are given
+[[https://eudat.eu/services/userdoc/b2access-service-integration][B2ACCESS
+instruction manual]]. 
+  
+* DONE EIDA Scope Management
+
+Scopes SHOULD be unique within EIDA. Besides, scopes should be consistent
+between protected resources of EIDA-RS and B2ACCESS.
+
+The scope syntax MUST respect the requirements defined in
+[[https://tools.ietf.org/html/rfc6749#section-3.3][Section 3.3 of OAuth2.0
+(RFC6749)]]. URI namespace identifiers SHOULD be used.
+
+A more detailed description on how to manage scopes is beyond the scope of
+this purposal.
+
