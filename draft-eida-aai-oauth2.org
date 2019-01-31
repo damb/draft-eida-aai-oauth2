@@ -713,7 +713,7 @@ well formatted or there is a mismatch between the parameters and values
 sent, the access token unregistration endpoint will respond with an HTTP 400
 (Bad Request).
 
-*** Token Revocation
+*** TODO Token Revocation
 
 Due to the fact, that a protected request session may exceed the access token
 expiration time, EIDA-AS SHOULD implement a token revocation endpoint. If a
