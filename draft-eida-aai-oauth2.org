@@ -256,6 +256,8 @@ tokens between two single requests.
 Protected resources of EIDA-RS will implement authentication requests using
 the authorization request header field as defined in
 [[https://tools.ietf.org/html/rfc6750#section-2.1][Section 2.1 of RFC6750]].
+Note, that [[https://tools.ietf.org/html/rfc6750][RFC6750]] requires using
+Transport Layer Security (TLS).
 
 The following is a non-normative exemplary end-user client request:
 
@@ -459,6 +461,9 @@ internal protected resource requests and requests for access token
 registration with EIDA-AS must contain at least one request identifier.
 
 *** DONE Protected Resource Requests
+
+The access to protected resources of EIDA-RS is defined by
+[[https://tools.ietf.org/html/rfc6750][RFC6750]].
 
 Request parameters for protected resources are equal to those for unprotected
 resources. Request parameters are defined in the
