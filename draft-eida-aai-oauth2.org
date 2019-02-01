@@ -127,7 +127,7 @@ for restricted data access.
 
     *Pros*:
     - Security
-    - Scalability; including as automatic protected resource provisioning
+    - Scalability; includes automatic protected resource provisioning
     - The CA decouples protected resources from authorization server (i.e.
       EIDA-AS)
     - Certificate based authentication makes further protection of EIDA-AS
