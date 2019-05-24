@@ -50,10 +50,18 @@ has a few shortcomings:
    rights. It replaces the user in any respect, and cannot be revoked. As the
    token issueing process cannot be automated, lifetimes of weeks to months
    are envisaged for these tokens, which is a major security concern.
- - The token is not scope specific - it contains all scope available in
-   B2ACCESS. Thus, by using it on one service, it reveals all access rights
-   of the user on any service to the service provider, and it entitles the
-   service provider to use any other of these services on behalf of the user.
+ - Within a distributed service environment such as EIDA the approach
+   requires EIDA gateway resource servers (e.g. EIDA /Federator/) to
+   manage tokens in order to issue requests to endpoints following the
+   procedure described above.
+ - Usage of a custom token format.
+ - +The token is not scope specific - it contains all scope available in+
+   +B2ACCESS. Thus, by using it on one service, it reveals all access rights+
+   +of the user on any service to the service provider, and it entitles the+
+   +service provider to use any other of these services on behalf of the+
+   +user.+
+   The current solution allows the end-user to choose the scope from a
+   drop-down menu.
  - The temporal limitation of the validity applies to all permissions equally.
 
 As a result, in an environment where b2access is intended to manage EPOS
@@ -747,6 +755,31 @@ Advantages & drawbacks of this architecture are:
     Again, enforcing requires the implementation of an EIDA (protected)
     resource registry unambigously identifying protected resources within
     EIDA.
+
+  - The design is both flexible and sustainable. The implementation of
+    EIDA-AS is exclusively required to allow protected resources implemented
+    by EIDA-GRS instances request processing durations greater than access
+    token lifetimes.
+    As a consequence, EIDA-AS would become obsolete if B2ACCESS (or any other
+    authorization server implementing the OAuth2.0 specification) would
+    enable the OAuth2.0 /Resource Owner Password Credentials Grant Type/.
+    Hence, EIDA-GRS instances could be considered as highly trusted clients
+    within EIDA and would be allowed to obtain an access token from the
+    OAuth2.0 authorization server (after a successful authentication) in case
+    the access token's lifetime exceeded.
+
+    Removing EIDA-AS would have the following (minor) consequences:
+
+    - Protected resources of EIDA-GRS implementations would need to adjust
+      their protocol flow.
+    - Protected resources of EIDA-ERS would need to validate/introspect the
+      access token with the OAuth2.0 authorization server instead with
+      EIDA-AS.
+    - The ~requestsessionid~ query parameter would become obsolete and could
+      be removed.
+
+    However, from the end-user's point of view the API of protected resources
+    within EIDA would remain unchanged.
 
 * DONE Refresh Tokens
 
