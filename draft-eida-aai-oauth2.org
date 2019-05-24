@@ -756,6 +756,31 @@ Advantages & drawbacks of this architecture are:
     resource registry unambigously identifying protected resources within
     EIDA.
 
+  - The design is both flexible and sustainable. The implementation of
+    EIDA-AS is exclusively required to allow protected resources implemented
+    by EIDA-GRS instances request processing durations greater than access
+    token lifetimes.
+    As a consequence, EIDA-AS would become obsolete if B2ACCESS (or any other
+    authorization server implementing the OAuth2.0 specification) would
+    enable the OAuth2.0 /Resource Owner Password Credentials Grant Type/.
+    Hence, EIDA-GRS instances could be considered as highly trusted clients
+    within EIDA and would be allowed to obtain an access token from the
+    OAuth2.0 authorization server (after a successful authentication) in case
+    the access token's lifetime exceeded.
+
+    Removing EIDA-AS would have the following (minor) consequences:
+
+    - Protected resources of EIDA-GRS implementations would need to adjust
+      their protocol flow.
+    - Protected resources of EIDA-ERS would need to validate/introspect the
+      access token with the OAuth2.0 authorization server instead with
+      EIDA-AS.
+    - The ~requestsessionid~ query parameter would become obsolete and could
+      be removed.
+
+    However, from the end-user's point of view the API of protected resources
+    within EIDA would remain unchanged.
+
 * DONE Refresh Tokens
 
 Clients MAY make use of refresh tokens as defined in
