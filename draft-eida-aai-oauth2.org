@@ -50,6 +50,11 @@ has a few shortcomings:
    rights. It replaces the user in any respect, and cannot be revoked. As the
    token issueing process cannot be automated, lifetimes of weeks to months
    are envisaged for these tokens, which is a major security concern.
+ - Within a distributed service environment such as EIDA the approach
+   requires EIDA gateway resource servers (e.g. EIDA /Federator/) to
+   manage tokens in order to issue requests to endpoints following the
+   procedure described above.
+ - Usage of a custom token format.
  - +The token is not scope specific - it contains all scope available in+
    +B2ACCESS. Thus, by using it on one service, it reveals all access rights+
    +of the user on any service to the service provider, and it entitles the+
