@@ -50,10 +50,13 @@ has a few shortcomings:
    rights. It replaces the user in any respect, and cannot be revoked. As the
    token issueing process cannot be automated, lifetimes of weeks to months
    are envisaged for these tokens, which is a major security concern.
- - The token is not scope specific - it contains all scope available in
-   B2ACCESS. Thus, by using it on one service, it reveals all access rights
-   of the user on any service to the service provider, and it entitles the
-   service provider to use any other of these services on behalf of the user.
+ - +The token is not scope specific - it contains all scope available in+
+   +B2ACCESS. Thus, by using it on one service, it reveals all access rights+
+   +of the user on any service to the service provider, and it entitles the+
+   +service provider to use any other of these services on behalf of the+
+   +user.+
+   The current solution allows the end-user to choose the scope from a
+   drop-down menu.
  - The temporal limitation of the validity applies to all permissions equally.
 
 As a result, in an environment where b2access is intended to manage EPOS
