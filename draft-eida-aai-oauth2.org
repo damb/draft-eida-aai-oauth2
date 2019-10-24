@@ -808,13 +808,21 @@ within EIDA (and EPOS) but is beyond the scope of this purposal.
 
 * TODO Open Questions
 
-  - [ ] Should protected resources of EIDA-RS implement both HTTP POST and
+  - [X] Should protected resources of EIDA-RS implement both HTTP POST and
     GET methods? If clients make use of the HTTP GET method it should be
     taken into consideration that access tokens might be logged.
 
-    Internally, when speaking about proxied access, protected resources of
-    EIDA-GRS instances MUST call other protected resources of EIDA-RS
-    instances by means of the HTTP POST method.
+    The question somehow messes up
+    [[https://tools.ietf.org/html/rfc6750][RFC6750]]'s description of
+    authenticated requests to protected resources of EIDA-RS. According to
+    [[https://tools.ietf.org/html/rfc6750][RFC6750]] (section 2.1) protected
+    resources within EIDA MUST implement authentication for HTTP GET requests
+    using the Authorization request header field. Besides, protected
+    resources MUST implement authenticated access by means of the HTTP POST
+    method [[https://tools.ietf.org/html/rfc6750#section-2.2][RFC6750 section
+    2.2]].
+    Authenticated access using the HTTP GET method including the access token
+    as a URI query parameter MUST NOT be implemented.
 
   - [ ] For the purpose of access token session registration/unregistration
     EIDA-AS needs to uniquely identify protected resources of EIDA-GRS
